@@ -70,38 +70,6 @@ const Button = styled.button`
   }
 `;
 
-const ChecklistItem = styled.div`
-  
-  margin-bottom: 1rem;
-`;
-
-const ChecklistItemHeader = styled.div`
-  display: flex;
-  align-items: center;
-  font-size: 1.2rem;
-  font-weight: bold;
-  gap: 1rem;
-  margin-bottom: 1rem;
-`;
-
-const ChecklistItemSubItem = styled.div`
-  margin-left: 1.5rem;
-  display: flex;
-  font-size: 1.2rem;
-  align-items: center;
-  gap: 1rem;
-  color: #666;
-`;
-
-const Checkbox = styled.input.attrs({ type: 'checkbox' })`
-  width: 1.5rem;
-  height: 1.5rem;
-  cursor: pointer;
-
-  &:checked {
-    accent-color: ${props => props.isSubItem ? '#ff4444' : '#4CAF50'};
-  }
-`;
 
 const ResultItem = styled.div`
   display: flex;
@@ -137,7 +105,8 @@ const ButtonContainer = styled.div`
 const CheckItem = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  font-size: 18px;
+  gap: 12px;
   padding: 12px 0;
   border-bottom: 1px solid #eee;
 `;
@@ -357,12 +326,28 @@ const ChecklistStep = ({ selections, onNext, onPrev }) => {
   const [checkedItems, setCheckedItems] = useState({});
   const items = sampleData[selections.업종][selections.구분][selections.유형];
 
+  console.log('Current Selections in Checklist:', selections); // 디버깅용
+  console.log('Available Items:', items); // 디버깅용
+
   const handleCheck = (itemName, type) => {
-    setCheckedItems(prev => ({
-      ...prev,
-      [type === 'main' ? itemName : `${itemName}_단서`]: 
-        !prev[type === 'main' ? itemName : `${itemName}_단서`]
-    }));
+    setCheckedItems(prev => {
+      const newState = { ...prev };
+      if (type === 'main') {
+        // 메인 체크박스 토글
+        newState[itemName] = !prev[itemName];
+        // 메인이 해제되면 단서조항도 해제
+        if (!newState[itemName]) {
+          newState[`${itemName}_단서`] = false;
+        }
+      } else {
+        // 단서조항은 메인이 체크된 경우에만 토글 가능
+        if (prev[itemName]) {
+          newState[`${itemName}_단서`] = !prev[`${itemName}_단서`];
+        }
+      }
+      console.log('Updated CheckedItems:', newState); // 디버깅용
+      return newState;
+    });
   };
 
   return (
@@ -378,13 +363,16 @@ const ChecklistStep = ({ selections, onNext, onPrev }) => {
               }
               <CheckText>{item.검사항목}</CheckText>
             </CheckIcon>
-            {checkedItems[`${item.검사항목}_단서`] && (
+            {checkedItems[item.검사항목] && checkedItems[`${item.검사항목}_단서`] && (
               <ExcludeTag>검사제외</ExcludeTag>
             )}
           </MainCheck>
           
           {item.단서조항 && (
-            <SubCheck onClick={() => handleCheck(item.검사항목, 'sub')}>
+            <SubCheck 
+              onClick={() => handleCheck(item.검사항목, 'sub')}
+              style={{ opacity: checkedItems[item.검사항목] ? 1 : 0.5 }}
+            >
               <CheckIcon className={checkedItems[`${item.검사항목}_단서`] ? 'excluded' : ''}>
                 {checkedItems[`${item.검사항목}_단서`] ? 
                   <FiMinusSquare size={18} /> : 
@@ -406,31 +394,35 @@ const ChecklistStep = ({ selections, onNext, onPrev }) => {
 };
 
 const ResultStep = ({ selections, checkedItems, onPrev }) => {
+  const items = sampleData[selections.업종][selections.구분][selections.유형];
+
   const calculateTotal = () => {
-    return sampleData["식품업"]["1. 과자류"]["(1) 과자"]
-      .reduce((total, item) => {
-        if (checkedItems[item.검사항목] && !checkedItems[`${item.검사항목}_단서`]) {
-          return total + item.수수료;
-        }
-        return total;
-      }, 0);
+    return items.reduce((total, item) => {
+      if (checkedItems[item.검사항목] && !checkedItems[`${item.검사항목}_단서`]) {
+        return total + (typeof item.수수료 === 'number' ? item.수수료 : 0);
+      }
+      return total;
+    }, 0);
   };
 
   const handleReset = () => {
-    window.location.reload(); // 페이지 새로고침으로 처음 상태로 돌아가기
+    window.location.reload();
   };
 
   return (
     <PageWrapper>
       <Title>검사 수수료 결과</Title>
-      {sampleData["식품업"]["1. 과자류"]["(1) 과자"].map((item, index) => (
-        checkedItems[item.검사항목] && !checkedItems[`${item.검사항목}_단서`] && (
-          <ResultItem key={index}>
-            <span>{item.검사항목}</span>
-            <span>{item.수수료.toLocaleString()}원</span>
-          </ResultItem>
-        )
-      ))}
+      {items.map((item, index) => {
+        if (checkedItems[item.검사항목] && !checkedItems[`${item.검사항목}_단서`]) {
+          return (
+            <ResultItem key={index}>
+              <span>{item.검사항목}</span>
+              <span>{typeof item.수수료 === 'number' ? item.수수료.toLocaleString() : item.수수료}원</span>
+            </ResultItem>
+          );
+        }
+        return null;
+      }).filter(Boolean)}
       <Divider />
       <TotalAmount>
         <span>합계</span>
@@ -472,8 +464,20 @@ const App = () => {
           currentStep={currentStep}
         />
       )}
-      {currentStep === 2 && <ChecklistStep selections={selections} onNext={handleNext} onPrev={handlePrev} />}
-      {currentStep === 3 && <ResultStep selections={selections} checkedItems={checkedItems} onPrev={handlePrev} />}
+      {currentStep === 2 && (
+        <ChecklistStep 
+          selections={selections} 
+          onNext={handleNext} 
+          onPrev={handlePrev} 
+        />
+      )}
+      {currentStep === 3 && (
+        <ResultStep 
+          selections={selections} 
+          checkedItems={checkedItems} 
+          onPrev={handlePrev} 
+        />
+      )}
     </MobileContainer>
   );
 };
