@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import MobileContainer from './MobileContainer';
+import { FiSquare, FiPlusSquare, FiMinusSquare } from "react-icons/fi";
 
 // 스타일 컴포넌트 정의
 const StepIndicatorWrapper = styled.div`
@@ -130,6 +131,58 @@ const ButtonContainer = styled.div`
   
   button {
     flex: 1;
+  }
+`;
+
+const CheckItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+`;
+
+const MainCheck = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+`;
+
+const SubCheck = styled.div`
+  display: flex;
+  align-items: center;
+  padding-left: 24px;
+  color: #666;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 4px;
+`;
+
+const CheckText = styled.span`
+  flex: 1;
+  margin-left: 8px;
+`;
+
+const ExcludeTag = styled.span`
+  background-color: #f5f5f5;
+  color: #ff6b6b;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  margin-left: 8px;
+`;
+
+const CheckIcon = styled.div`
+  display: flex;
+  align-items: center;
+  
+  &.checked {
+    color: #2ecc71;
+  }
+  
+  &.excluded {
+    color: #ff6b6b;
   }
 `;
 
@@ -302,33 +355,46 @@ const SelectionStep = ({ onNext, onPrev, currentStep }) => {
 
 const ChecklistStep = ({ selections, onNext, onPrev }) => {
   const [checkedItems, setCheckedItems] = useState({});
+  const items = sampleData[selections.업종][selections.구분][selections.유형];
+
+  const handleCheck = (itemName, type) => {
+    setCheckedItems(prev => ({
+      ...prev,
+      [type === 'main' ? itemName : `${itemName}_단서`]: 
+        !prev[type === 'main' ? itemName : `${itemName}_단서`]
+    }));
+  };
 
   return (
     <PageWrapper>
       <Title>검사항목 선택</Title>
-      {sampleData["식품업"]["1. 과자류"]["(1) 과자"].map((item, index) => (
-        <ChecklistItem key={index}>
-          <ChecklistItemHeader>
-            <Checkbox
-              onChange={(e) => setCheckedItems(prev => ({
-                ...prev,
-                [item.검사항목]: e.target.checked
-              }))}
-            />
-            <span>{item.검사항목}</span>
-          </ChecklistItemHeader>
-          <ChecklistItemSubItem>
-            <span>┗</span>
-            <Checkbox
-              isSubItem
-              onChange={(e) => setCheckedItems(prev => ({
-                ...prev,
-                [`${item.검사항목}_단서`]: e.target.checked
-              }))}
-            />
-            <span>{item.단서조항}</span>
-          </ChecklistItemSubItem>
-        </ChecklistItem>
+      {items.map((item, index) => (
+        <CheckItem key={index}>
+          <MainCheck onClick={() => handleCheck(item.검사항목, 'main')}>
+            <CheckIcon className={checkedItems[item.검사항목] ? 'checked' : ''}>
+              {checkedItems[item.검사항목] ? 
+                <FiPlusSquare size={20} /> : 
+                <FiSquare size={20} />
+              }
+              <CheckText>{item.검사항목}</CheckText>
+            </CheckIcon>
+            {checkedItems[`${item.검사항목}_단서`] && (
+              <ExcludeTag>검사제외</ExcludeTag>
+            )}
+          </MainCheck>
+          
+          {item.단서조항 && (
+            <SubCheck onClick={() => handleCheck(item.검사항목, 'sub')}>
+              <CheckIcon className={checkedItems[`${item.검사항목}_단서`] ? 'excluded' : ''}>
+                {checkedItems[`${item.검사항목}_단서`] ? 
+                  <FiMinusSquare size={18} /> : 
+                  <FiSquare size={18} />
+                }
+                <CheckText>{item.단서조항}</CheckText>
+              </CheckIcon>
+            </SubCheck>
+          )}
+        </CheckItem>
       ))}
       
       <ButtonContainer>
