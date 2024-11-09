@@ -245,15 +245,25 @@ const StepIndicator = ({ currentStep }) => (
   </StepIndicatorWrapper>
 );
 
+const SelectContainer = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+`;
+
+const SelectWrapper = styled.div`
+  flex: 1;
+`;
+
 const SearchButton = styled.button`
-  padding: 4px 8px;
-  margin-right: 8px;
+  padding: 8px 16px;
+  height: 38px;
   background-color: #007bff;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 0.8rem;
+  white-space: nowrap;
   
   &:hover {
     background-color: #0056b3;
@@ -275,14 +285,14 @@ const CustomDropdownIndicator = (props) => {
   );
 };
 
-const CustomControl = ({ children, setSearchMode, ...props }) => (
+const CustomControl = ({ children, ...props }) => (
   <components.Control {...props}>
     {children}
     <SearchButton 
       type="button"
       onClick={(e) => {
         e.stopPropagation();
-        setSearchMode(true);
+        props.selectProps.setIsSearchMode(true);
       }}
     >
       검색
@@ -306,8 +316,8 @@ export default function FeeCalculator() {
   const [totalFee, setTotalFee] = useState(0);
   const [loading, setLoading] = useState(true);
   const [calculatedItems, setCalculatedItems] = useState([]);
-  const [isSearchable, setIsSearchable] = useState(false);
   const [isSearchMode, setIsSearchMode] = useState(false);
+  const [menuIsOpen, setMenuIsOpen] = useState(false);
 
   useEffect(() => {
     const fetchOptions = async () => {
@@ -506,23 +516,34 @@ export default function FeeCalculator() {
                   isSearchable={false}
                 />
                 <Label>식품 유형:</Label>
-                <Select
-                  options={foodTypeOptions}
-                  value={foodTypeOptions.find(option => option.value === foodType)}
-                  onChange={(selectedOption) => {
-                    setFoodType(selectedOption?.value || '');
-                    setIsSearchMode(false);
-                  }}
-                  isDisabled={!category}
-                  isSearchable={isSearchMode}
-                  onMenuClose={() => setIsSearchMode(false)}
-                  placeholder="식품 유형을 선택하세요"
-                  components={{
-                    Control: (props) => (
-                      <CustomControl {...props} setSearchMode={setIsSearchMode} />
-                    )
-                  }}
-                />
+                <SelectContainer>
+                  <SelectWrapper>
+                    <Select
+                      options={foodTypeOptions}
+                      value={foodTypeOptions.find(option => option.value === foodType)}
+                      onChange={(selectedOption) => {
+                        setFoodType(selectedOption?.value || '');
+                      }}
+                      isDisabled={!category}
+                      isSearchable={isSearchMode}
+                      menuIsOpen={menuIsOpen}
+                      onMenuOpen={() => setMenuIsOpen(true)}
+                      onMenuClose={() => {
+                        setMenuIsOpen(false);
+                        setIsSearchMode(false);
+                      }}
+                      placeholder="식품 유형을 선택하세요"
+                    />
+                  </SelectWrapper>
+                  <SearchButton
+                    onClick={() => {
+                      setIsSearchMode(true);
+                      setMenuIsOpen(true);
+                    }}
+                  >
+                    검색
+                  </SearchButton>
+                </SelectContainer>
                 <ButtonContainer>
                   <StyledButton onClick={() => window.close()}>계산종료</StyledButton>
                   <StyledButton primary onClick={handleNextStep}>다음</StyledButton>
@@ -651,7 +672,7 @@ export default function FeeCalculator() {
                       </ReceiptRow>
                     </>
                   ) : (
-                    <Notice>선택��� 검사 항목이 없습니다.</Notice>
+                    <Notice>선택 검사 항목이 없습니다.</Notice>
                   )}
                   <ReceiptFooter>
                     ※ 해당 수수료는 식약처 고시 금액 기준으로 산정되었으며, 인건비와 일반관리비는 제외되므로 실 검사 비용과 다를 수 있습니다.
