@@ -4,6 +4,7 @@ import MobileContainer from './MobileContainer';
 import styled from 'styled-components';
 import Select from 'react-select';
 import { FiSquare, FiPlusSquare, FiMinusSquare } from "react-icons/fi";
+import { components } from 'react-select';
 
 const Content = styled.div`
   flex: 1;
@@ -244,6 +245,51 @@ const StepIndicator = ({ currentStep }) => (
   </StepIndicatorWrapper>
 );
 
+const SearchButton = styled.button`
+  padding: 4px 8px;
+  margin-right: 8px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  
+  &:hover {
+    background-color: #0056b3;
+  }
+`;
+
+const CustomDropdownIndicator = (props) => {
+  return (
+    <components.DropdownIndicator {...props}>
+      <SearchButton 
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsSearchable(true);
+        }}
+      >
+        검색
+      </SearchButton>
+    </components.DropdownIndicator>
+  );
+};
+
+const CustomControl = ({ children, setSearchMode, ...props }) => (
+  <components.Control {...props}>
+    {children}
+    <SearchButton 
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        setSearchMode(true);
+      }}
+    >
+      검색
+    </SearchButton>
+  </components.Control>
+);
+
 export default function FeeCalculator() {
   const [currentStep, setCurrentStep] = useState(1);
   const [industryOptions, setIndustryOptions] = useState([]);
@@ -260,6 +306,8 @@ export default function FeeCalculator() {
   const [totalFee, setTotalFee] = useState(0);
   const [loading, setLoading] = useState(true);
   const [calculatedItems, setCalculatedItems] = useState([]);
+  const [isSearchable, setIsSearchable] = useState(false);
+  const [isSearchMode, setIsSearchMode] = useState(false);
 
   useEffect(() => {
     const fetchOptions = async () => {
@@ -418,6 +466,16 @@ export default function FeeCalculator() {
     }
   ];
 
+  const handleReset = () => {
+    setCurrentStep(1);
+    setIndustry('');
+    setCategory('');
+    setFoodType('');
+    setExcludedItems([]);
+    setSelectedCommonCriteria([]);
+    setCalculatedItems([]);
+    setTotalFee(0);
+  };
 
   return (
     <MobileContainer>
@@ -436,6 +494,7 @@ export default function FeeCalculator() {
                   value={industryOptions.find(option => option.value === industry)}
                   onChange={(selectedOption) => setIndustry(selectedOption?.value || '')}
                   placeholder="업종을 선택하세요"
+                  isSearchable={false}
                 />
                 <Label>구분:</Label>
                 <Select
@@ -444,15 +503,25 @@ export default function FeeCalculator() {
                   onChange={(selectedOption) => setCategory(selectedOption?.value || '')}
                   isDisabled={!industry}
                   placeholder="구분을 선택하세요"
+                  isSearchable={false}
                 />
                 <Label>식품 유형:</Label>
                 <Select
                   options={foodTypeOptions}
                   value={foodTypeOptions.find(option => option.value === foodType)}
-                  onChange={(selectedOption) => setFoodType(selectedOption?.value || '')}
+                  onChange={(selectedOption) => {
+                    setFoodType(selectedOption?.value || '');
+                    setIsSearchMode(false);
+                  }}
                   isDisabled={!category}
-                  isSearchable
+                  isSearchable={isSearchMode}
+                  onMenuClose={() => setIsSearchMode(false)}
                   placeholder="식품 유형을 선택하세요"
+                  components={{
+                    Control: (props) => (
+                      <CustomControl {...props} setSearchMode={setIsSearchMode} />
+                    )
+                  }}
                 />
                 <ButtonContainer>
                   <StyledButton onClick={() => window.close()}>계산종료</StyledButton>
@@ -582,14 +651,14 @@ export default function FeeCalculator() {
                       </ReceiptRow>
                     </>
                   ) : (
-                    <Notice>선택된 검사 항목이 없습니다.</Notice>
+                    <Notice>선택��� 검사 항목이 없습니다.</Notice>
                   )}
                   <ReceiptFooter>
                     ※ 해당 수수료는 식약처 고시 금액 기준으로 산정되었으며, 인건비와 일반관리비는 제외되므로 실 검사 비용과 다를 수 있습니다.
                   </ReceiptFooter>
                 </ReceiptContainer>
                 <ButtonContainer>
-                  <StyledButton onClick={() => setCurrentStep(1)}>처음으로</StyledButton>
+                  <StyledButton onClick={handleReset}>처음으로</StyledButton>
                   <StyledButton primary onClick={() => window.close()}>계산종료</StyledButton>
                 </ButtonContainer>
               </FormSection>
