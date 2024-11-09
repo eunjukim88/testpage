@@ -585,8 +585,7 @@ export default function FeeCalculator() {
                     <Notice>선택된 검사 항목이 없습니다.</Notice>
                   )}
                   <ReceiptFooter>
-                    ※ 해당 수수료는 식약처 고시 금액 기준으로 산정되었으며, 인건비와 일반관리비는 제외됩니다. 
-                    민간 기관과는 시약비와 장비 구매 비용 등의 차이로 수수료가 다를 수 있습니다.
+                    ※ 해당 수수료는 식약처 고시 금액 기준으로 산정되었으며, 인건비와 일반관리비는 제외되므로 실 검사 비용과 다를 수 있습니다.
                   </ReceiptFooter>
                 </ReceiptContainer>
                 <ButtonContainer>
