@@ -1,8 +1,10 @@
-// supabaseClient.js
 import { createClient } from '@supabase/supabase-js';
 
-// 환경 변수로부터 Supabase URL과 익명 키를 가져옵니다
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = 'https://tkmeduwwvsqyuojxnsco.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRrbWVkdXd3dnNxeXVvanhuc2NvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzExNDk0NjEsImV4cCI6MjA0NjcyNTQ2MX0.OIz5boOaztrdslamVXrVJsOHYNRBfCuCyh5-FMG2FYg';
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables');
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);

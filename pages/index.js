@@ -270,36 +270,6 @@ const SearchButton = styled.button`
   }
 `;
 
-const CustomDropdownIndicator = (props) => {
-  return (
-    <components.DropdownIndicator {...props}>
-      <SearchButton 
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsSearchable(true);
-        }}
-      >
-        검색
-      </SearchButton>
-    </components.DropdownIndicator>
-  );
-};
-
-const CustomControl = ({ children, ...props }) => (
-  <components.Control {...props}>
-    {children}
-    <SearchButton 
-      type="button"
-      onClick={(e) => {
-        e.stopPropagation();
-        props.selectProps.setIsSearchMode(true);
-      }}
-    >
-      검색
-    </SearchButton>
-  </components.Control>
-);
-
 export default function FeeCalculator() {
   const [currentStep, setCurrentStep] = useState(1);
   const [industryOptions, setIndustryOptions] = useState([]);
@@ -312,7 +282,6 @@ export default function FeeCalculator() {
   const [excludedItems, setExcludedItems] = useState([]);
   const [commonCriteria, setCommonCriteria] = useState([]);
   const [selectedCommonCriteria, setSelectedCommonCriteria] = useState([]);
-  const [groupedCommonCriteria, setGroupedCommonCriteria] = useState({});
   const [totalFee, setTotalFee] = useState(0);
   const [loading, setLoading] = useState(true);
   const [calculatedItems, setCalculatedItems] = useState([]);
@@ -322,12 +291,19 @@ export default function FeeCalculator() {
   useEffect(() => {
     const fetchOptions = async () => {
       setLoading(true);
+      console.log('Fetching industry options...');
+      
       const { data: industryData, error: industryError } = await supabase
-        .from('food_inspection')
-        .select('industry_type');
+        .from('fee_schedule')
+        .select('industry');
 
-      if (industryError) console.error('Error fetching industry options:', industryError);
-      else setIndustryOptions([...new Set(industryData.map(d => d.industry_type))].map(industry_type => ({ value: industry_type, label: industry_type })));
+      if (industryError) {
+        console.error('Error fetching industry options:', industryError);
+      } else {
+        console.log('Industry data:', industryData);
+        const uniqueIndustries = [...new Set(industryData.map(d => d.industry))];
+        setIndustryOptions(uniqueIndustries.map(industry => ({ value: industry, label: industry })));
+      }
       setLoading(false);
     };
 
@@ -337,14 +313,21 @@ export default function FeeCalculator() {
   useEffect(() => {
     if (industry) {
       setLoading(true);
+      console.log('Fetching categories for industry:', industry);
+      
       const fetchCategoryOptions = async () => {
         const { data: categoryData, error: categoryError } = await supabase
-          .from('food_inspection')
+          .from('fee_schedule')
           .select('category')
-          .eq('industry_type', industry);
+          .eq('industry', industry);
 
-        if (categoryError) console.error('Error fetching category options:', categoryError);
-        else setCategoryOptions([...new Set(categoryData.map(d => d.category))].map(category => ({ value: category, label: category })));
+        if (categoryError) {
+          console.error('Error fetching category options:', categoryError);
+        } else {
+          console.log('Category data:', categoryData);
+          const uniqueCategories = [...new Set(categoryData.map(d => d.category))];
+          setCategoryOptions(uniqueCategories.map(category => ({ value: category, label: category })));
+        }
         setLoading(false);
       };
 
@@ -355,69 +338,79 @@ export default function FeeCalculator() {
   useEffect(() => {
     if (category) {
       setLoading(true);
+      console.log('Fetching food types for category:', category);
+      
       const fetchFoodTypeOptions = async () => {
         const { data: foodTypeData, error: foodTypeError } = await supabase
-          .from('food_inspection')
+          .from('fee_schedule')
           .select('food_type')
-          .eq('industry_type', industry)
+          .eq('industry', industry)
           .eq('category', category);
 
-        if (foodTypeError) console.error('Error fetching food type options:', foodTypeError);
-        else setFoodTypeOptions([...new Set(foodTypeData.map(d => d.food_type))].map(food_type => ({ value: food_type, label: food_type })));
+        if (foodTypeError) {
+          console.error('Error fetching food type options:', foodTypeError);
+        } else {
+          console.log('Food type data:', foodTypeData);
+          const uniqueFoodTypes = [...new Set(foodTypeData.map(d => d.food_type))];
+          setFoodTypeOptions(uniqueFoodTypes.map(food_type => ({ value: food_type, label: food_type })));
+        }
         setLoading(false);
       };
 
       fetchFoodTypeOptions();
     }
-  }, [category]);
+  }, [category, industry]);
 
   const fetchInspectionItems = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('food_inspection')
+    console.log('Fetching inspection items for:', { industry, category, foodType });
+    
+    const { data: feeData, error: feeError } = await supabase
+      .from('fee_schedule')
       .select('*')
-      .eq('industry_type', industry)
+      .eq('industry', industry)
       .eq('category', category)
       .eq('food_type', foodType);
 
-    if (error) {
-      console.error('Error fetching inspection items:', error);
+    console.log('Fee schedule data:', feeData);
+    console.log('Fee schedule error:', feeError);
+
+    if (feeError) {
+      console.error('Error fetching inspection items:', feeError);
     } else {
-      setInspectionItems(data);
+      setInspectionItems(feeData || []);
     }
     setLoading(false);
   };
 
   useEffect(() => {
     if (industry && category && foodType) {
-      setExcludedItems([]);
       fetchInspectionItems();
     }
   }, [industry, category, foodType]);
 
   useEffect(() => {
-    const fetchCommonCriteria = async () => {
+    const fetchCommonStandards = async () => {
       const { data, error } = await supabase
-        .from('common_inspection')
+        .from('common_standards')
         .select('*')
         .order('id');
       
-      if (error) console.error('Error fetching common criteria:', error);
-      else {
-        const groupedData = data.reduce((acc, item) => {
-          if (!acc[item.criterion_name]) {
-            acc[item.criterion_name] = [];
-          }
-          acc[item.criterion_name].push(item);
-          return acc;
-        }, {});
-        setCommonCriteria(data);
-        setGroupedCommonCriteria(groupedData);
+      if (error) {
+        console.error('Error fetching common standards:', error);
+      } else {
+        console.log('Common standards:', data);
+        setCommonCriteria(data || []);
       }
     };
 
-    fetchCommonCriteria();
+    fetchCommonStandards();
   }, []);
+
+  useEffect(() => {
+    console.log('Selected Common Criteria:', selectedCommonCriteria);
+    console.log('Inspection Items:', inspectionItems);
+  }, [selectedCommonCriteria, inspectionItems]);
 
   const handleNextStep = () => {
     if (currentStep < 4) {
@@ -435,8 +428,8 @@ export default function FeeCalculator() {
   };
 
   const calculateFee = () => {
-    const includedItems = inspectionItems.filter(item => {
-      if (item.condition_clause) {
+    const basicItems = inspectionItems.filter(item => {
+      if (item.clause) {
         return !excludedItems.includes(item.id);
       }
       return true;
@@ -446,33 +439,48 @@ export default function FeeCalculator() {
       selectedCommonCriteria.includes(item.id) && !excludedItems.includes(item.id)
     );
     
-    const allCalculatedItems = [
-      ...includedItems,
-      ...selectedCommonItems
-    ];
+    const uniqueItemsMap = new Map();
     
-    setCalculatedItems(allCalculatedItems);
+    basicItems.forEach(item => {
+      uniqueItemsMap.set(item.test_code, item);
+    });
     
-    const total = allCalculatedItems.reduce((sum, item) => sum + (Number(item.fee) || 0), 0);
+    selectedCommonItems.forEach(item => {
+      if (!uniqueItemsMap.has(item.test_code)) {
+        uniqueItemsMap.set(item.test_code, item);
+      }
+    });
+    
+    const finalItems = Array.from(uniqueItemsMap.values());
+    setCalculatedItems(finalItems);
+    
+    const total = finalItems.reduce((sum, item) => sum + Number(item.fee), 0);
     setTotalFee(total);
+    
+    console.log('Final Items:', finalItems);
+    console.log('Total Fee:', total);
   };
 
   const commonQuestions = [
     {
       id: 1,
-      question: '식품을 금속재질의 분쇄기로 분쇄를 하였나?'
+      question: '식품을 금속재질의 분쇄기로 분쇄를 하였나?',
+      relatedIds: [1]
     },
     {
       id: 2,
-      question: '통,병조림 식품 인가요?'
+      question: '통,병조림 식품 인가요?',
+      relatedIds: [2, 3]
     },
     {
       id: 3,
-      question: '레토르트식품 인가요?'
+      question: '레토르트식품 인가요?',
+      relatedIds: [4, 5]
     },
     {
       id: 4,
-      question: '냉동식품 인가요?'
+      question: '냉동식품 인가요?',
+      relatedIds: [6, 7, 8, 9]
     }
   ];
 
@@ -557,12 +565,12 @@ export default function FeeCalculator() {
                   <ChecklistItem key={item.id}>
                     <InspectionContent>
                       <InspectionHeader>
-                        <Label>{item.inspection_item}</Label>
+                        <Label>{item.test_item}</Label>
                         {excludedItems.includes(item.id) && 
                           <ExclusionLabel>검사 제외</ExclusionLabel>
                         }
                       </InspectionHeader>
-                      {item.condition_clause && (
+                      {item.clause && (
                         <ConditionClause>
                           <input
                             type="checkbox"
@@ -575,7 +583,7 @@ export default function FeeCalculator() {
                               }
                             }}
                           />
-                          <span>{item.condition_clause}</span>
+                          <span>{item.clause}</span>
                         </ConditionClause>
                       )}
                     </InspectionContent>
@@ -591,15 +599,13 @@ export default function FeeCalculator() {
               <FormSection>
                 <SectionTitle>검사 관련 추가 확인 사항</SectionTitle>
                 {commonQuestions.map((question) => {
-                  const relatedCriteriaItems = (() => {
-                    switch(question.id) {
-                      case 1: return commonCriteria.filter(item => item.id === 1);
-                      case 2: return commonCriteria.filter(item => [2,3].includes(item.id));
-                      case 3: return commonCriteria.filter(item => [4,5].includes(item.id));
-                      case 4: return commonCriteria.filter(item => [6,7,8,9].includes(item.id));
-                      default: return [];
-                    }
-                  })();
+                  const relatedItems = commonCriteria.filter(item => 
+                    question.relatedIds.includes(item.id)
+                  );
+
+                  const isChecked = question.relatedIds.some(id => 
+                    selectedCommonCriteria.includes(id)
+                  );
 
                   return (
                     <div key={question.id} style={{ marginBottom: '2rem' }}>
@@ -607,27 +613,21 @@ export default function FeeCalculator() {
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', width: '100%' }}>
                           <input
                             type="checkbox"
-                            checked={relatedCriteriaItems.some(item => selectedCommonCriteria.includes(item.id))}
+                            checked={isChecked}
                             onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedCommonCriteria([...selectedCommonCriteria, ...relatedCriteriaItems.map(item => item.id)]);
-                              } else {
-                                setSelectedCommonCriteria(
-                                  selectedCommonCriteria.filter(id => !relatedCriteriaItems.map(item => item.id).includes(id))
-                                );
-                              }
+                              const newSelected = e.target.checked
+                                ? [...selectedCommonCriteria, ...question.relatedIds]
+                                : selectedCommonCriteria.filter(id => !question.relatedIds.includes(id));
+                              
+                              setSelectedCommonCriteria([...new Set(newSelected)]);
                             }}
                           />
-                          <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between' }}>
-                            <span>{question.question}</span>
-                            {relatedCriteriaItems.some(item => excludedItems.includes(item.id)) && 
-                              <ExclusionLabel>검사 제외</ExclusionLabel>
-                            }
-                          </div>
+                          <span>{question.question}</span>
                         </div>
                       </ChecklistItem>
-                      {relatedCriteriaItems.some(item => selectedCommonCriteria.includes(item.id)) && 
-                        relatedCriteriaItems.map(item => item.condition_clause && (
+                      
+                      {isChecked && relatedItems.map(item => (
+                        item.clause && (
                           <SubCheckbox key={item.id}>
                             <input
                               type="checkbox"
@@ -640,10 +640,10 @@ export default function FeeCalculator() {
                                 }
                               }}
                             />
-                            <span>{item.condition_clause}</span>
+                            <span>{item.clause}</span>
                           </SubCheckbox>
-                        ))
-                      }
+                        )
+                      ))}
                     </div>
                   );
                 })}
@@ -663,11 +663,12 @@ export default function FeeCalculator() {
                     <>
                       {calculatedItems.map(item => (
                         <ReceiptRow key={item.id}>
-                          <span>{item.inspection_item}</span>
+                          <span>{item.test_item}</span>
                           <span>{Number(item.fee).toLocaleString()}원</span>
                         </ReceiptRow>
                       ))}
                       <ReceiptRow className="total">
+                        <span>총계</span>
                         <span>{totalFee.toLocaleString()}원</span>
                       </ReceiptRow>
                     </>
