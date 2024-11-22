@@ -1,693 +1,119 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '../supabaseClient';
-import MobileContainer from './MobileContainer';
+import React, { useState } from 'react';
 import styled from 'styled-components';
-import Select from 'react-select';
-import { FiSquare, FiPlusSquare, FiMinusSquare } from "react-icons/fi";
-import { components } from 'react-select';
+import MobileContainer from '../components/MobileContainer';
 
-const Content = styled.div`
-  flex: 1;
-  padding: 0.8rem;
-  overflow-y: auto;
-`;
-
-const StepIndicatorWrapper = styled.div`
-  display: flex;
-  justify-content: space-between;
-  padding: 0.5rem;
-  background-color: #fff;
+const SearchBar = styled.div`
+  padding: 1rem;
+  background: white;
   border-bottom: 1px solid #eee;
 `;
 
-const StepCircle = styled.div`
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: ${props => props.active ? '#27ae60' : '#f5f5f5'};
-  color: ${props => props.active ? 'white' : '#666'};
-  font-weight: 600;
-  transition: all 0.3s ease;
-  box-shadow: ${props => props.active ? '0 2px 8px rgba(30,136,229,0.3)' : 'none'};
-  font-size: 14px;
-`;
-
-const ButtonContainer = styled.div`
-  display: flex;
-  gap: 1rem;
-  margin-top: 2rem;
-  padding: 0 1rem;
-`;
-
-const StyledButton = styled.button`
-  flex: 1;
-  background-color: ${props => props.primary ? '#2ecc71' : '#fff'};
-  color: ${props => props.primary ? '#fff' : '#2ecc71'};
-  border: 1px solid #2ecc71;
-  padding: 12px 16px;
-  border-radius: 8px;
-  font-size: 15px;
-  font-weight: 600;
-  transition: all 0.3s ease;
-
-  &:hover {
-    background-color: ${props => props.primary ? '#27ae60' : '#f0f9f0'};
-  }
-`;
-
-const SectionTitle = styled.h2`
-  color: #28a745;
-  text-align: center;
-`;
-
-const Label = styled.label`
-  display: block;
-  margin-bottom: 0.3rem;
-  margin-top: 0.3rem;
-  font-weight: bold;
-`;
-
-const FormSection = styled.div`
-  padding: 0.8rem;
-  margin: 0 auto;
-`;
-
-const ChecklistItem = styled.div`
-  padding: 0.7rem;
-  border-radius: 8px;
-  background: #f8f9fa;
-  margin-bottom: 0.7rem;
-  font-size: 0.9rem;
-`;
-
-const InspectionContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-`;
-
-const InspectionHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
-const ConditionClause = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.3rem;
-  color: #666;
-`;
-
-const SubCheckbox = styled.div`
-  margin-top: 0.5rem;
-  margin-left: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const ExclusionLabel = styled.span`
-  color: red;
-  margin-left: 1rem;
-  font-weight: bold;
-`;
-
-const LoadingMessage = styled.div`
-  text-align: center;
-  font-size: 1.2rem;
-  color: #999;
-  margin-top: 2rem;
-`;
-
-const Notice = styled.div`
-  background-color: #fff3cd;
-  color: #856404;
-  border: 1px solid #ffeeba;
-  padding: 1rem;
-  margin: 1rem 0;
+const SearchInput = styled.input`
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
   border-radius: 4px;
 `;
 
-const ResultRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  padding: 0.5rem 0;
-  
-  &.total {
-    border-top: 1px solid #ddd;
-    margin-top: 1rem;
-    padding-top: 1rem;
-    font-weight: bold;
-  }
+const ApplicationList = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
 `;
 
-const ReceiptContainer = styled.div`
+const ApplicationCard = styled.div`
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border: 1px solid #eee;
+  border-radius: 8px;
   padding: 1rem;
-  position: relative;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: -8px;
-    left: 0;
-    right: 0;
-    height: 8px;
-    background: linear-gradient(
-      45deg,
-      white 25%,
-      transparent 25%,
-      transparent 75%,
-      white 75%
-    );
-    background-size: 16px 16px;
-  }
-
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: -8px;
-    left: 0;
-    right: 0;
-    height: 8px;
-    background: linear-gradient(
-      45deg,
-      white 25%,
-      transparent 25%,
-      transparent 75%,
-      white 75%
-    );
-    background-size: 16px 16px;
-  }
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 `;
 
-const ReceiptHeader = styled.div`
-  text-align: center;
-  margin-bottom: 1.5rem;
-  border-bottom: 2px dashed #eee;
-  
-  h3 {
-    font-size: 1.2rem;
-    color: #333;
-  }
-`;
-
-const ReceiptRow = styled(ResultRow)`
-  color: #444;
-  font-size: 0.95rem;
-  padding-bottom: 0.7rem;
-  
-  span:first-child {
-    flex: 0.60;
-  }
-  
-  span:last-child {
-    flex: 0.40;
-    text-align: right;
-  }
-
-  &.total {
-    border-top: 2px dashed #eee;
-    margin-top: 0.8rem;
-    padding-top: 0.8rem;
-    font-weight: bold;
-    font-size: 1.1rem;
-    
-    span {
-      flex: 1;
-      text-align: right;
-    }
-  }
-`;
-
-const ReceiptFooter = styled.div`
-  text-align: center;
-  border-top: 2px dashed #eee;
-  color: #666;
-  font-size: 0.85rem;
-  padding-top: 1rem;
-`;
-
-const StepIndicator = ({ currentStep }) => (
-  <StepIndicatorWrapper>
-    {[1, 2, 3, 4].map((step) => (
-      <StepCircle key={step} active={currentStep === step}>
-        {step}
-      </StepCircle>
-    ))}
-  </StepIndicatorWrapper>
-);
-
-const SelectContainer = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  align-items: flex-start;
-`;
-
-const SelectWrapper = styled.div`
-  flex: 1;
-`;
-
-const SearchButton = styled.button`
-  padding: 8px 16px;
-  height: 38px;
-  background-color: #007bff;
+const StatusBadge = styled.span`
+  background: ${props => props.status === '접수완료' ? '#2ecc71' : '#f1c40f'};
   color: white;
-  border: none;
+  padding: 0.2rem 0.5rem;
   border-radius: 4px;
-  cursor: pointer;
-  white-space: nowrap;
-  
-  &:hover {
-    background-color: #0056b3;
-  }
+  font-size: 0.8rem;
 `;
 
-export default function FeeCalculator() {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [industryOptions, setIndustryOptions] = useState([]);
-  const [categoryOptions, setCategoryOptions] = useState([]);
-  const [foodTypeOptions, setFoodTypeOptions] = useState([]);
-  const [industry, setIndustry] = useState('');
-  const [category, setCategory] = useState('');
-  const [foodType, setFoodType] = useState('');
-  const [inspectionItems, setInspectionItems] = useState([]);
-  const [excludedItems, setExcludedItems] = useState([]);
-  const [commonCriteria, setCommonCriteria] = useState([]);
-  const [selectedCommonCriteria, setSelectedCommonCriteria] = useState([]);
-  const [totalFee, setTotalFee] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [calculatedItems, setCalculatedItems] = useState([]);
-  const [isSearchMode, setIsSearchMode] = useState(false);
-  const [menuIsOpen, setMenuIsOpen] = useState(false);
+const ProgressStatus = styled.div`
+  margin-top: 0.5rem;
+  color: #666;
+`;
 
-  useEffect(() => {
-    const fetchOptions = async () => {
-      setLoading(true);
-      console.log('Fetching industry options...');
-      
-      const { data: industryData, error: industryError } = await supabase
-        .from('fee_schedule')
-        .select('industry');
+const Notes = styled.div`
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #666;
+`;
 
-      if (industryError) {
-        console.error('Error fetching industry options:', industryError);
-      } else {
-        console.log('Industry data:', industryData);
-        const uniqueIndustries = [...new Set(industryData.map(d => d.industry))];
-        setIndustryOptions(uniqueIndustries.map(industry => ({ value: industry, label: industry })));
-      }
-      setLoading(false);
-    };
+// 임시 데이터
+const sampleApplications = [
+  {
+    id: 1,
+    name: '홍길동',
+    applicants: 3,
+    date: '2024년 03월 15일 14:30',
+    status: '접수진행중',
+    progressStatus: '베트남 접수중',
+    expectedDate: '2024년 04월 20일',
+    notes: '서류 추가 제출 필요'
+  },
+  {
+    id: 2,
+    name: '김철수',
+    applicants: 1,
+    date: '2024년 03월 14일 09:15',
+    status: '접수완료',
+    progressStatus: '입국심사완료',
+    expectedDate: '2024년 03월 30일',
+    notes: '특이사항 없음'
+  }
+];
 
-    fetchOptions();
-  }, []);
+function Home() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [applications, setApplications] = useState(sampleApplications);
 
-  useEffect(() => {
-    if (industry) {
-      setLoading(true);
-      console.log('Fetching categories for industry:', industry);
-      
-      const fetchCategoryOptions = async () => {
-        const { data: categoryData, error: categoryError } = await supabase
-          .from('fee_schedule')
-          .select('category')
-          .eq('industry', industry);
-
-        if (categoryError) {
-          console.error('Error fetching category options:', categoryError);
-        } else {
-          console.log('Category data:', categoryData);
-          const uniqueCategories = [...new Set(categoryData.map(d => d.category))];
-          setCategoryOptions(uniqueCategories.map(category => ({ value: category, label: category })));
-        }
-        setLoading(false);
-      };
-
-      fetchCategoryOptions();
-    }
-  }, [industry]);
-
-  useEffect(() => {
-    if (category) {
-      setLoading(true);
-      console.log('Fetching food types for category:', category);
-      
-      const fetchFoodTypeOptions = async () => {
-        const { data: foodTypeData, error: foodTypeError } = await supabase
-          .from('fee_schedule')
-          .select('food_type')
-          .eq('industry', industry)
-          .eq('category', category);
-
-        if (foodTypeError) {
-          console.error('Error fetching food type options:', foodTypeError);
-        } else {
-          console.log('Food type data:', foodTypeData);
-          const uniqueFoodTypes = [...new Set(foodTypeData.map(d => d.food_type))];
-          setFoodTypeOptions(uniqueFoodTypes.map(food_type => ({ value: food_type, label: food_type })));
-        }
-        setLoading(false);
-      };
-
-      fetchFoodTypeOptions();
-    }
-  }, [category, industry]);
-
-  const fetchInspectionItems = async () => {
-    setLoading(true);
-    console.log('Fetching inspection items for:', { industry, category, foodType });
-    
-    const { data: feeData, error: feeError } = await supabase
-      .from('fee_schedule')
-      .select('*')
-      .eq('industry', industry)
-      .eq('category', category)
-      .eq('food_type', foodType);
-
-    console.log('Fee schedule data:', feeData);
-    console.log('Fee schedule error:', feeError);
-
-    if (feeError) {
-      console.error('Error fetching inspection items:', feeError);
-    } else {
-      setInspectionItems(feeData || []);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    if (industry && category && foodType) {
-      fetchInspectionItems();
-    }
-  }, [industry, category, foodType]);
-
-  useEffect(() => {
-    const fetchCommonStandards = async () => {
-      const { data, error } = await supabase
-        .from('common_standards')
-        .select('*')
-        .order('id');
-      
-      if (error) {
-        console.error('Error fetching common standards:', error);
-      } else {
-        console.log('Common standards:', data);
-        setCommonCriteria(data || []);
-      }
-    };
-
-    fetchCommonStandards();
-  }, []);
-
-  useEffect(() => {
-    console.log('Selected Common Criteria:', selectedCommonCriteria);
-    console.log('Inspection Items:', inspectionItems);
-  }, [selectedCommonCriteria, inspectionItems]);
-
-  const handleNextStep = () => {
-    if (currentStep < 4) {
-      if (currentStep === 3) {
-        calculateFee();
-      }
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const handlePrevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const calculateFee = () => {
-    const basicItems = inspectionItems.filter(item => {
-      if (item.clause) {
-        return !excludedItems.includes(item.id);
-      }
-      return true;
-    });
-    
-    const selectedCommonItems = commonCriteria.filter(item => 
-      selectedCommonCriteria.includes(item.id) && !excludedItems.includes(item.id)
-    );
-    
-    const uniqueItemsMap = new Map();
-    
-    basicItems.forEach(item => {
-      uniqueItemsMap.set(item.test_code, item);
-    });
-    
-    selectedCommonItems.forEach(item => {
-      if (!uniqueItemsMap.has(item.test_code)) {
-        uniqueItemsMap.set(item.test_code, item);
-      }
-    });
-    
-    const finalItems = Array.from(uniqueItemsMap.values());
-    setCalculatedItems(finalItems);
-    
-    const total = finalItems.reduce((sum, item) => sum + Number(item.fee), 0);
-    setTotalFee(total);
-    
-    console.log('Final Items:', finalItems);
-    console.log('Total Fee:', total);
-  };
-
-  const commonQuestions = [
-    {
-      id: 1,
-      question: '식품을 금속재질의 분쇄기로 분쇄를 하였나?',
-      relatedIds: [1]
-    },
-    {
-      id: 2,
-      question: '통,병조림 식품 인가요?',
-      relatedIds: [2, 3]
-    },
-    {
-      id: 3,
-      question: '레토르트식품 인가요?',
-      relatedIds: [4, 5]
-    },
-    {
-      id: 4,
-      question: '냉동식품 인가요?',
-      relatedIds: [6, 7, 8, 9]
-    }
-  ];
-
-  const handleReset = () => {
-    setCurrentStep(1);
-    setIndustry('');
-    setCategory('');
-    setFoodType('');
-    setExcludedItems([]);
-    setSelectedCommonCriteria([]);
-    setCalculatedItems([]);
-    setTotalFee(0);
-  };
+  const filteredApplications = applications.filter(app => 
+    app.name.includes(searchTerm)
+  );
 
   return (
     <MobileContainer>
-      <Content>
-        <StepIndicator currentStep={currentStep} />
-        {loading ? (
-          <LoadingMessage>로딩 중...</LoadingMessage>
-        ) : (
-          <>
-            {currentStep === 1 && (
-              <FormSection>
-                <SectionTitle>수수료 계산기</SectionTitle>
-                <Label>업종:</Label>
-                <Select
-                  options={industryOptions}
-                  value={industryOptions.find(option => option.value === industry)}
-                  onChange={(selectedOption) => setIndustry(selectedOption?.value || '')}
-                  placeholder="업종을 선택하세요"
-                  isSearchable={false}
-                />
-                <Label>구분:</Label>
-                <Select
-                  options={categoryOptions}
-                  value={categoryOptions.find(option => option.value === category)}
-                  onChange={(selectedOption) => setCategory(selectedOption?.value || '')}
-                  isDisabled={!industry}
-                  placeholder="구분을 선택하세요"
-                  isSearchable={false}
-                />
-                <Label>식품 유형:</Label>
-                <SelectContainer>
-                  <SelectWrapper>
-                    <Select
-                      options={foodTypeOptions}
-                      value={foodTypeOptions.find(option => option.value === foodType)}
-                      onChange={(selectedOption) => {
-                        setFoodType(selectedOption?.value || '');
-                      }}
-                      isDisabled={!category}
-                      isSearchable={isSearchMode}
-                      menuIsOpen={menuIsOpen}
-                      onMenuOpen={() => setMenuIsOpen(true)}
-                      onMenuClose={() => {
-                        setMenuIsOpen(false);
-                        setIsSearchMode(false);
-                      }}
-                      placeholder="식품 유형을 선택하세요"
-                    />
-                  </SelectWrapper>
-                  <SearchButton
-                    onClick={() => {
-                      setIsSearchMode(true);
-                      setMenuIsOpen(true);
-                    }}
-                  >
-                    검색
-                  </SearchButton>
-                </SelectContainer>
-                <ButtonContainer>
-                  <StyledButton onClick={() => window.close()}>계산종료</StyledButton>
-                  <StyledButton primary onClick={handleNextStep}>다음</StyledButton>
-                </ButtonContainer>
-              </FormSection>
-            )}
-            {currentStep === 2 && (
-              <FormSection>
-                <SectionTitle>검사항목 확인</SectionTitle>
-                {inspectionItems.map(item => (
-                  <ChecklistItem key={item.id}>
-                    <InspectionContent>
-                      <InspectionHeader>
-                        <Label>{item.test_item}</Label>
-                        {excludedItems.includes(item.id) && 
-                          <ExclusionLabel>검사 제외</ExclusionLabel>
-                        }
-                      </InspectionHeader>
-                      {item.clause && (
-                        <ConditionClause>
-                          <input
-                            type="checkbox"
-                            checked={excludedItems.includes(item.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setExcludedItems([...excludedItems, item.id]);
-                              } else {
-                                setExcludedItems(excludedItems.filter(id => id !== item.id));
-                              }
-                            }}
-                          />
-                          <span>{item.clause}</span>
-                        </ConditionClause>
-                      )}
-                    </InspectionContent>
-                  </ChecklistItem>
-                ))}
-                <ButtonContainer>
-                  <StyledButton onClick={handlePrevStep}>이전</StyledButton>
-                  <StyledButton primary onClick={handleNextStep}>다음</StyledButton>
-                </ButtonContainer>
-              </FormSection>
-            )}
-            {currentStep === 3 && (
-              <FormSection>
-                <SectionTitle>검사 관련 추가 확인 사항</SectionTitle>
-                {commonQuestions.map((question) => {
-                  const relatedItems = commonCriteria.filter(item => 
-                    question.relatedIds.includes(item.id)
-                  );
-
-                  const isChecked = question.relatedIds.some(id => 
-                    selectedCommonCriteria.includes(id)
-                  );
-
-                  return (
-                    <div key={question.id} style={{ marginBottom: '2rem' }}>
-                      <ChecklistItem>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', width: '100%' }}>
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={(e) => {
-                              const newSelected = e.target.checked
-                                ? [...selectedCommonCriteria, ...question.relatedIds]
-                                : selectedCommonCriteria.filter(id => !question.relatedIds.includes(id));
-                              
-                              setSelectedCommonCriteria([...new Set(newSelected)]);
-                            }}
-                          />
-                          <span>{question.question}</span>
-                        </div>
-                      </ChecklistItem>
-                      
-                      {isChecked && relatedItems.map(item => (
-                        item.clause && (
-                          <SubCheckbox key={item.id}>
-                            <input
-                              type="checkbox"
-                              checked={excludedItems.includes(item.id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setExcludedItems([...excludedItems, item.id]);
-                                } else {
-                                  setExcludedItems(excludedItems.filter(id => id !== item.id));
-                                }
-                              }}
-                            />
-                            <span>{item.clause}</span>
-                          </SubCheckbox>
-                        )
-                      ))}
-                    </div>
-                  );
-                })}
-                <ButtonContainer>
-                  <StyledButton onClick={handlePrevStep}>이전</StyledButton>
-                  <StyledButton primary onClick={handleNextStep}>다음</StyledButton>
-                </ButtonContainer>
-              </FormSection>
-            )}
-            {currentStep === 4 && (
-              <FormSection>
-                <ReceiptContainer>
-                  <ReceiptHeader>
-                    <h3>수수료 계산 결과</h3>
-                  </ReceiptHeader>
-                  {calculatedItems.length > 0 ? (
-                    <>
-                      {calculatedItems.map(item => (
-                        <ReceiptRow key={item.id}>
-                          <span>{item.test_item}</span>
-                          <span>{Number(item.fee).toLocaleString()}원</span>
-                        </ReceiptRow>
-                      ))}
-                      <ReceiptRow className="total">
-                        <span>총계</span>
-                        <span>{totalFee.toLocaleString()}원</span>
-                      </ReceiptRow>
-                    </>
-                  ) : (
-                    <Notice>선택 검사 항목이 없습니다.</Notice>
-                  )}
-                  <ReceiptFooter>
-                    ※ 해당 수수료는 식약처 고시 금액 기준으로 산정되었으며, 인건비와 일반관리비는 제외되므로 실 검사 비용과 다를 수 있습니다.
-                  </ReceiptFooter>
-                </ReceiptContainer>
-                <ButtonContainer>
-                  <StyledButton onClick={handleReset}>처음으로</StyledButton>
-                  <StyledButton primary onClick={() => window.close()}>계산종료</StyledButton>
-                </ButtonContainer>
-              </FormSection>
-            )}
-          </>
-        )}
-      </Content>
+      <SearchBar>
+        <SearchInput 
+          type="text"
+          placeholder="이름으로 검색"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </SearchBar>
+      
+      <ApplicationList>
+        {filteredApplications.map(app => (
+          <ApplicationCard key={app.id}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3>{app.name}</h3>
+              <StatusBadge status={app.status}>{app.status}</StatusBadge>
+            </div>
+            <div>접수인원: {app.applicants}명</div>
+            <div>접수일자: {app.date}</div>
+            <ProgressStatus>
+              진행상태: {app.progressStatus}
+              <br />
+              완료예정일: {app.expectedDate}
+            </ProgressStatus>
+            <Notes>
+              비고: {app.notes}
+            </Notes>
+          </ApplicationCard>
+        ))}
+      </ApplicationList>
     </MobileContainer>
   );
 }
+
+export default Home;
