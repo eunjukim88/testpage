@@ -144,7 +144,6 @@ function AdminDashboard() {
             ))}
           </ApplicationList>
         </Content>
-        <AddButton onClick={() => setIsModalOpen(true)}>+</AddButton>
         <LogoutButton onClick={handleLogout}>로그아웃</LogoutButton>
 
         {isModalOpen && (

@@ -12,7 +12,7 @@ const Container = styled.div`
 
 const ContentWrapper = styled.div`
   width: 360px;
-  height: 740px;
+  height: 640px;
   background-color: white;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   border-radius: 12px;
