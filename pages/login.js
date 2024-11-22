@@ -22,6 +22,23 @@ function Login() {
   const [verificationCode, setVerificationCode] = useState('');
   const [error, setError] = useState('');
 
+  const formatPhoneNumber = (value) => {
+    if (!value) return value;
+    const phoneNumber = value.replace(/[^\d]/g, '');
+    if (phoneNumber.length < 4) return phoneNumber;
+    if (phoneNumber.length < 7) {
+      return `${phoneNumber.slice(0, 3)}-${phoneNumber.slice(3)}`;
+    }
+    return `${phoneNumber.slice(0, 3)}-${phoneNumber.slice(3, 7)}-${phoneNumber.slice(7, 11)}`;
+  };
+
+  const handlePhoneChange = (e) => {
+    const formattedPhoneNumber = formatPhoneNumber(e.target.value);
+    if (formattedPhoneNumber.length <= 13) {
+      setPhone(formattedPhoneNumber);
+    }
+  };
+
   const handleLogin = (e) => {
     e.preventDefault();
     
@@ -50,8 +67,8 @@ function Login() {
           type="tel"
           placeholder="전화번호 (예: 010-0000-0000)"
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          pattern="[0-9]{3}-[0-9]{4}-[0-9]{4}"
+          onChange={handlePhoneChange}
+          maxLength={13}
         />
         <Input
           type="text"

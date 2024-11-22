@@ -72,11 +72,14 @@ export const Container = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow: hidden;
 `;
 
 export const Content = styled.div`
   flex: 1;
   overflow-y: auto;
+  padding: 1rem;
+  padding-bottom: 70px;
 `;
 
 export const Button = styled.button`
@@ -105,14 +108,27 @@ export const Button = styled.button`
   }
 `;
 
-export const LogoutButton = styled(Button)`
+export const LogoutButton = styled.button`
+  width: 100%;
+  padding: 1rem;
   background: #ef4444;
-  border-radius: 0;
-  margin-top: auto;
+  color: white;
+  border: none;
   font-weight: 600;
+  cursor: pointer;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
 
   &:hover {
     background: #dc2626;
+  }
+
+  @media (min-width: 361px) {
+    position: absolute;
+    border-radius: 0 0 12px 12px;
   }
 `;
 

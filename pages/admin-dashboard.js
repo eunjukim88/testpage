@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import MobileContainer from '../components/MobileContainer';
 import { sampleApplications } from '../constants/sampleData';
+import ApplicationCard from '../components/ApplicationCard';
 import {
   SearchBar,
   SearchInput,
   ApplicationList,
-  ApplicationCard,
   ProgressStatus,
   Notes,
   StatusSelect,
@@ -110,83 +110,23 @@ function AdminDashboard() {
           </SearchBar>
           <ApplicationList>
             {filteredApplications.map(app => (
-              <ApplicationCard key={app.id}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3>{app.name}</h3>
-                  <StatusSelect
-                    value={app.status}
-                    onChange={(e) => handleStatusChange(app.id, e.target.value)}
-                  >
-                    <option value="접수진행중">접수진행중</option>
-                    <option value="접수완료">접수완료</option>
-                  </StatusSelect>
-                </div>
-                <div>접수인원: {app.applicants}명</div>
-                <div>접수일자: {app.date}</div>
-                <ProgressStatus>
-                  진행상태: 
-                  <StatusSelect
-                    value={app.progressStatus}
-                    onChange={(e) => handleProgressStatusChange(app.id, e.target.value)}
-                  >
-                    <option value="베트남 접수중">베트남 접수중</option>
-                    <option value="베트남 접수완료">베트남 접수완료</option>
-                    <option value="입국심사중">입국심사중</option>
-                    <option value="입국심사완료">입국심사완료</option>
-                  </StatusSelect>
-                  <br />
-                  완료예정일: {app.expectedDate}
-                </ProgressStatus>
-                <Notes>
-                  비고: {app.notes}
-                </Notes>
-              </ApplicationCard>
+              <ApplicationCard 
+                key={app.id}
+                application={app}
+                isAdmin={true}
+                onStatusChange={handleStatusChange}
+                onProgressStatusChange={handleProgressStatusChange}
+                onSave={(editedData) => {
+                  setApplications(applications.map(a => 
+                    a.id === editedData.id ? editedData : a
+                  ));
+                }}
+              />
             ))}
           </ApplicationList>
         </Content>
         <LogoutButton onClick={handleLogout}>로그아웃</LogoutButton>
 
-        {isModalOpen && (
-          <Modal onClick={() => setIsModalOpen(false)}>
-            <ModalContent onClick={e => e.stopPropagation()}>
-              <h3>신규 접수 등록</h3>
-              <form onSubmit={handleAddApplication}>
-                <Input
-                  placeholder="이름"
-                  value={newApplication.name}
-                  onChange={e => setNewApplication({...newApplication, name: e.target.value})}
-                  required
-                />
-                <Input
-                  placeholder="전화번호"
-                  value={newApplication.phone}
-                  onChange={e => setNewApplication({...newApplication, phone: e.target.value})}
-                  required
-                />
-                <Input
-                  type="number"
-                  placeholder="접수인원"
-                  value={newApplication.applicants}
-                  onChange={e => setNewApplication({...newApplication, applicants: e.target.value})}
-                  required
-                />
-                <Input
-                  type="date"
-                  placeholder="완료예정일"
-                  value={newApplication.expectedDate}
-                  onChange={e => setNewApplication({...newApplication, expectedDate: e.target.value})}
-                  required
-                />
-                <textarea
-                  placeholder="비고"
-                  value={newApplication.notes}
-                  onChange={e => setNewApplication({...newApplication, notes: e.target.value})}
-                />
-                <Button type="submit">등록</Button>
-              </form>
-            </ModalContent>
-          </Modal>
-        )}
       </Container>
     </MobileContainer>
   );
